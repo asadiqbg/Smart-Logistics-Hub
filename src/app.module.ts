@@ -8,7 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfigFactory } from './config/typeorm.config';
 
 const ENV = process.env.NODE_ENV;
-
+console.log(ENV);
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -19,7 +19,7 @@ const ENV = process.env.NODE_ENV;
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: typeOrmConfigFactory,
+      useFactory: (console.log('resolved'), typeOrmConfigFactory),
     }),
   ],
   controllers: [AppController],
