@@ -23,4 +23,8 @@ export class Customer extends BaseEntity {
 
   @Column()
   phone: string;
+
+  @ManyToOne(() => Tenant, (tenant) => tenant.drivers)
+  @JoinColumn({ name: 'tenant_id' })
+  tenant: Tenant;
 }

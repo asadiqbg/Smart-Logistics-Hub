@@ -33,4 +33,8 @@ export class Driver extends BaseEntity {
   @Column({ default: 'offline' })
   @Index()
   status: string;
+
+  @ManyToOne(() => Tenant, (tenant) => tenant.drivers)
+  @JoinColumn({ name: 'tenant_id' })
+  tenant: Tenant;
 }

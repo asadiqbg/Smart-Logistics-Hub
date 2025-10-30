@@ -76,4 +76,8 @@ export class Order extends BaseEntity {
 
   @Column({ name: 'completed_at', nullable: true, type: 'timestamp' })
   completedAt: Date;
+
+  @ManyToOne(() => Tenant, (tenant) => tenant.drivers)
+  @JoinColumn({ name: 'tenant_id' })
+  tenant: Tenant;
 }

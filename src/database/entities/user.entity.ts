@@ -24,6 +24,9 @@ export class User extends BaseEntity {
 
   @Column({ default: 'viewer' })
   role: string;
+
+  @ManyToOne(() => Tenant, (tenant) => tenant.users)
+  tenant: Tenant;
 }
 
 /**
