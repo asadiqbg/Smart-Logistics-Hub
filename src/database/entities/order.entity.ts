@@ -12,9 +12,7 @@ import { Customer } from './customer.entity';
 import { Driver } from './driver.entity';
 import { Point } from 'geojson';
 import { RouteStop } from './route-stop.entity';
-import { RoutesMapper } from '@nestjs/core/middleware/routes-mapper';
 import { OrderEvent } from './order-event.entity';
-import { join } from 'path';
 
 @Entity('orders')
 export class Order extends BaseEntity {
@@ -99,3 +97,9 @@ export class Order extends BaseEntity {
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 }
+
+/**
+ * An order's lifecycle involves many events: created, assigned to driver, picked up, in transit, delivered. Rather than storing just the current status, we create OrderEvent records for every status change. This creates an audit trail. You can answer questions like "how long did this order spend in 'assigned' status before being picked up?"
+
+RouteStop connects orders to routes. When route optimization creates a route for a driver, it creates RouteStop records that say "stop 1 is order A, stop 2 is order B, stop 3 is order C." This gives drivers a sequence to follow.
+ */

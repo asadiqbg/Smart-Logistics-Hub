@@ -24,4 +24,12 @@ export class RouteStop extends BaseEntity {
 
   @Column({ default: 'pending' })
   status: string;
+
+  @ManyToOne(() => Route, (route) => route.stops, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'route_id' })
+  route: Route;
+
+  @ManyToOne(() => Order, (order) => order.routeStops)
+  @JoinColumn({ name: 'order_id' })
+  order: Order;
 }

@@ -9,6 +9,7 @@ import {
 import { BaseEntity } from './base.entity';
 import { Tenant } from './tenant.entity';
 import { Driver } from './driver.entity';
+import { RouteStop } from './route-stop.entity';
 
 @Entity('routes')
 export class Route extends BaseEntity {
@@ -49,6 +50,13 @@ export class Route extends BaseEntity {
 
   @Column({ name: 'completed_at', nullable: true, type: 'timestamp' })
   completedAt: Date;
+
+  @ManyToOne(() => Driver, (driver) => driver.routes)
+  @JoinColumn({ name: 'driver_id' })
+  driver: Driver;
+
+  @OneToMany(() => RouteStop, (stop) => stop.route, { cascade: true })
+  stops: RouteStop[];
 
   @ManyToOne(() => Tenant, (tenant) => tenant.drivers)
   @JoinColumn({ name: 'tenant_id' })
