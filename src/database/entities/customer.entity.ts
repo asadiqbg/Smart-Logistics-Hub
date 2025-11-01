@@ -5,9 +5,11 @@ import {
   OneToMany,
   JoinColumn,
   Index,
+  Point,
 } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Tenant } from './tenant.entity';
+import { Order } from './order.entity';
 
 @Entity('customers')
 export class Customer extends BaseEntity {
@@ -23,6 +25,18 @@ export class Customer extends BaseEntity {
 
   @Column()
   phone: string;
+
+  @Column({
+    name: 'default_address',
+    type: 'geography',
+    spatialFeatureType: 'Point',
+    srid: 4326,
+    nullable: true,
+  })
+  defaultAddress: Point;
+
+  @OneToMany(() => Order, (order) => order.customer)
+  orders: Order[];
 
   @ManyToOne(() => Tenant, (tenant) => tenant.drivers)
   @JoinColumn({ name: 'tenant_id' })

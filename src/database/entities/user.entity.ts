@@ -22,6 +22,8 @@ export class User extends BaseEntity {
   @Exclude()
   passwordHash: string;
 
+  //design decision: we dont create a separate role entity
+  //roles are fixed and rarely change(admin,dispatcher,viewer)
   @Column({ default: 'viewer' })
   role: string;
 

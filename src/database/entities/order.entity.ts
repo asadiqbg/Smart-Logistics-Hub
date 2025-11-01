@@ -11,6 +11,10 @@ import { Tenant } from './tenant.entity';
 import { Customer } from './customer.entity';
 import { Driver } from './driver.entity';
 import { Point } from 'geojson';
+import { RouteStop } from './route-stop.entity';
+import { RoutesMapper } from '@nestjs/core/middleware/routes-mapper';
+import { OrderEvent } from './order-event.entity';
+import { join } from 'path';
 
 @Entity('orders')
 export class Order extends BaseEntity {
@@ -76,6 +80,20 @@ export class Order extends BaseEntity {
 
   @Column({ name: 'completed_at', nullable: true, type: 'timestamp' })
   completedAt: Date;
+
+  @OneToMany(() => RouteStop, (stop) => stop.order)
+  routeStops: RouteStop;
+
+  @OneToMany(() => OrderEvent, (event) => event.order)
+  events: OrderEvent[];
+
+  @ManyToOne(() => Customer, (customer) => customer.orders)
+  @JoinColumn({ name: 'customer_id' })
+  customer: Customer;
+
+  @ManyToOne(() => Driver, (driver) => driver.orders, { nullable: true })
+  @JoinColumn({ name: 'driver_id' })
+  driver: Driver;
 
   @ManyToOne(() => Tenant, (tenant) => tenant.drivers)
   @JoinColumn({ name: 'tenant_id' })
