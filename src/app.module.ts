@@ -6,6 +6,7 @@ import databaseConfig from './config/database.config';
 import appConfig from './config/app.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfigFactory } from './config/typeorm.config';
+import { AuthModule } from './auth/auth.module';
 
 const ENV = process.env.NODE_ENV;
 console.log(ENV);
@@ -21,6 +22,7 @@ console.log(ENV);
       inject: [ConfigService],
       useFactory: (console.log('resolved'), typeOrmConfigFactory),
     }),
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
