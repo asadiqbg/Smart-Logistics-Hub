@@ -8,6 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfigFactory } from './config/typeorm.config';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
+import { TenantModule } from './tenant/tenant.module';
 
 const ENV = process.env.NODE_ENV;
 console.log(ENV);
@@ -25,6 +26,7 @@ console.log(ENV);
     }),
     AuthModule,
     UserModule,
+    TenantModule,
   ],
   controllers: [AppController],
   providers: [AppService],

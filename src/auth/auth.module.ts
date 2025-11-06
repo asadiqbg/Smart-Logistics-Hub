@@ -7,11 +7,13 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/database/entities/user.entity';
 import { UserModule } from 'src/user/user.module';
+import { TenantModule } from 'src/tenant/tenant.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     UserModule,
+    TenantModule,
     ConfigModule,
     PassportModule,
     JwtModule.registerAsync({
