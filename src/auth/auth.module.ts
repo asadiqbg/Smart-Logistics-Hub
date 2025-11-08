@@ -8,10 +8,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/database/entities/user.entity';
 import { UserModule } from 'src/user/user.module';
 import { TenantModule } from 'src/tenant/tenant.module';
+import { HashingProvider } from './providers/hashing.provider';
+import { BcryptProvider } from './providers/bcrypt.provider';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
     UserModule,
     TenantModule,
     ConfigModule,
@@ -29,6 +30,13 @@ import { TenantModule } from 'src/tenant/tenant.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [
+    AuthService,
+    {
+      provide: HashingProvider,
+      useClass: BcryptProvider,
+    },
+  ],
+  exports: [AuthService, HashingProvider],
 })
 export class AuthModule {}
