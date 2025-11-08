@@ -2,12 +2,13 @@ import {
   IsEmail,
   IsOptional,
   IsString,
+  IsUUID,
   MinLength,
   minLength,
 } from 'class-validator';
 
 export class CreateUserDto {
-  @IsString()
+  @IsUUID()
   tenantId: string;
 
   @IsEmail()

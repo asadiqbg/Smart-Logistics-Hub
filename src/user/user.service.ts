@@ -1,4 +1,9 @@
-import { ConflictException, forwardRef, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  forwardRef,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { HashingProvider } from 'src/auth/providers/hashing.provider';
 import { User } from 'src/database/entities/user.entity';
@@ -19,6 +24,22 @@ export class UserService {
     return await this.userRepository.findOne({
       where: { id },
     });
+  }
+
+  public async findUserbyEmailandTenantId(
+    email: string,
+    tenantId: string,
+  ): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: {
+        email,
+        tenantId,
+      },
+    });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return user;
   }
 
   public async createUser(createUserDto: CreateUserDto): Promise<User> {
