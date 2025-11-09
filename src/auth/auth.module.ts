@@ -10,6 +10,7 @@ import { UserModule } from 'src/user/user.module';
 import { TenantModule } from 'src/tenant/tenant.module';
 import { HashingProvider } from './providers/hashing.provider';
 import { BcryptProvider } from './providers/bcrypt.provider';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -24,7 +25,9 @@ import { BcryptProvider } from './providers/bcrypt.provider';
         const jwtConfig = cfg.get('jwt');
         return {
           secret: jwtConfig.secret,
-          signOptions: jwtConfig.expiresIn,
+          signOptions: {
+            expiresIn: jwtConfig.expiresIn,
+          },
         };
       },
     }),
@@ -32,6 +35,7 @@ import { BcryptProvider } from './providers/bcrypt.provider';
   controllers: [AuthController],
   providers: [
     AuthService,
+    JwtStrategy,
     {
       provide: HashingProvider,
       useClass: BcryptProvider,

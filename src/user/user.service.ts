@@ -21,6 +21,7 @@ export class UserService {
   ) {}
 
   public async findUserById(id: string): Promise<User | null> {
+    console.log('inside user service');
     return await this.userRepository.findOne({
       where: { id },
     });
