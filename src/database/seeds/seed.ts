@@ -16,6 +16,9 @@ async function seed() {
     synchronize: false,
   });
 
+  await dataSource.initialize();
+  console.log('Database connected');
+
   try {
     // Create tenant
     const tenantRepo = dataSource.getRepository(Tenant);
@@ -32,5 +35,6 @@ async function seed() {
   } finally {
     await dataSource.destroy();
   }
-  seed();
 }
+
+seed();
