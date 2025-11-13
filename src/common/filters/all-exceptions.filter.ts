@@ -7,9 +7,9 @@ import {
 import { BaseExceptionFilter } from '@nestjs/core';
 import { timestamp } from 'rxjs';
 
-export class AllExceptionsFiler extends BaseExceptionFilter {
+export class AllExceptionsFilter extends BaseExceptionFilter {
   //creates a logger instance labeled with the class name.
-  private readonly logger = new Logger(AllExceptionsFiler.name);
+  private readonly logger = new Logger(AllExceptionsFilter.name);
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest();
