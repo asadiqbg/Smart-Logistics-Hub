@@ -31,3 +31,20 @@ class LocationDto {
   @IsDateString()
   windowEnd: string;
 }
+
+class PackageDto {
+  @ApiProperty({ example: 2.5 })
+  @IsNumber()
+  @Min(0.1)
+  weightKg: number;
+
+  @ApiPropertyOptional({ example: { length: 30, width: 20, height: 15 } })
+  @IsOptional()
+  //we don't create a nestes dto for dimensions because it doesn't represent a domain like packageDto and locationDto does, which are value objects in domain driven design inside out Order aggreate
+  dimensions?: { length: number; width: number; height: number };
+
+  @ApiPropertyOptional({ example: 'Fragile - handle with care' })
+  @IsOptional()
+  @IsString()
+  specialInstructions?: string;
+}
