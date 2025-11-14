@@ -48,3 +48,30 @@ class PackageDto {
   @IsString()
   specialInstructions?: string;
 }
+
+export class CreateOrderDto {
+  @ApiPropertyOptional({ example: 'SHOP-123' })
+  @IsOptional()
+  @IsString()
+  externalOrderId?: string;
+
+  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsUUID()
+  customerId: string;
+
+  @ApiProperty({ type: LocationDto })
+  @ValidateNested()
+  @Type(() => LocationDto)
+  pickup: LocationDto;
+
+  @ApiProperty({ type: LocationDto })
+  @ValidateNested()
+  //here with validateNested(), we are telling validation pipe to recursively apply the validation rules defined in the nested object DTO's class
+  @Type(() => LocationDto)
+  delivery: LocationDto;
+
+  @ApiProperty({ type: PackageDto })
+  @ValidateNested()
+  @Type(() => PackageDto)
+  package: PackageDto;
+}
