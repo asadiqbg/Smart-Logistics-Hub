@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CustomerService } from 'src/customer/customer.service';
@@ -6,9 +6,11 @@ import { OrderEvent } from 'src/database/entities/order-event.entity';
 import { Order } from 'src/database/entities/order.entity';
 import { Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { OrderStatus } from './dto/update-order-status.dto';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
   constructor(
     @InjectRepository(Order) private orderRepository: Repository<Order>,
     @InjectRepository(OrderEvent)
@@ -46,16 +48,61 @@ export class OrdersService {
       ],
     };
     //calculate esimated duration
-
+    const estimatedDuration = this.calculateEstimatedDuration(
+      createOrderDto.pickup.coordinates,
+      createOrderDto.delivery.coordinates,
+    );
     //create order
-
+    const order = this.orderRepository.create({
+      tenantId,
+      customerId: createOrderDto.customerId,
+      externalOrderId: createOrderDto.externalOrderId,
+      pickupLocation: pickupLocation as any,
+      deliveryLocation: deliveryLocation as any,
+      pickupWindowStart: new Date(createOrderDto.pickup.windowStart),
+      pickupWindowEnd: new Date(createOrderDto.pickup.windowEnd),
+      deliveryWindowStart: new Date(createOrderDto.delivery.windowStart),
+      deliveryWindowEnd: new Date(createOrderDto.delivery.windowEnd),
+      weightKg: createOrderDto.package.weightKg,
+      dimensionsJson: createOrderDto.package.dimensions,
+      specialInstructions: createOrderDto.package.specialInstructions,
+      estimatedDurationMinutes: estimatedDuration,
+      status: OrderStatus.PENDING,
+    });
     //save order
-
+    const savedOrder = await this.orderRepository.save(order);
     //create orderevent and store in db
+    await this.createOrderEvent(
+      savedOrder.id,
+      'order.created',
+      { order: savedOrder },
+      userId,
+    );
 
     //generate event
-
+    this.eventEmitter.emit('order.created', {
+      orderId: savedOrder.id,
+      tenantId,
+      customerId: savedOrder.customerId,
+    });
     //return savedorder
+    this.logger.log(`Order created:${savedOrder.id}`);
+    return savedOrder;
+  }
+  //createOrderEvent: save order in orderEvent once created
+  private async createOrderEvent(
+    orderId: string,
+    eventType: string,
+    eventData: any,
+    createdBy: string | null,
+  ) {
+    const event = this.orderEventRepository.create({
+      orderId,
+      eventType,
+      eventData,
+      createdBy: createdBy === null ? undefined : createdBy,
+    });
+    return this.orderEventRepository.save(event);
   }
 
   //This is the Haversine formula, which calculates the great-circle distance between two points on a sphere. "Great-circle" means the shortest path along the surface of the sphere (like an airplane route
