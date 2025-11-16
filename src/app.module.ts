@@ -9,6 +9,7 @@ import { typeOrmConfigFactory } from './config/typeorm.config';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { TenantModule } from './tenant/tenant.module';
+import { CustomerModule } from './customer/customer.module';
 import jwtConfig from './config/jwt.config';
 
 const ENV = process.env.NODE_ENV;
@@ -28,6 +29,7 @@ console.log(ENV);
     AuthModule,
     UserModule,
     TenantModule,
+    CustomerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
