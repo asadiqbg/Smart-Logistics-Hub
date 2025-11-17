@@ -7,6 +7,7 @@ import { Order } from 'src/database/entities/order.entity';
 import { Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderStatus } from './dto/update-order-status.dto';
+import { OrderQueryDto } from './dto/order-query.dto';
 
 @Injectable()
 export class OrdersService {
@@ -88,6 +89,51 @@ export class OrdersService {
     //return savedorder
     this.logger.log(`Order created:${savedOrder.id}`);
     return savedOrder;
+  }
+  //findAll orders
+  async findAll(tenantId: string, query: OrderQueryDto) {
+    //build query builder
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.customer', 'customer')
+      .leftJoinAndSelect('order.driver', 'driver')
+      .where('order.tenantId = :tenantId', { tenantId });
+    //check for input queries, if exists, add them in builder
+    if (query.status) {
+      queryBuilder.andWhere('order.status = :status', { status: query.status });
+    }
+
+    if (query.driverId) {
+      queryBuilder.andWhere('order.driverId = :driverId', {
+        driverId: query.driverId,
+      });
+    }
+    //since cursor is extracted as a string from query params or dto
+    // we have to convert it to js Date object
+    // which is then converted to SQL date format at compile time when .getMany() is executed
+    if (query.cursor) {
+      queryBuilder.andWhere('order.createdAt > :cursor', {
+        cursor: new Date(query.cursor),
+      });
+    }
+    //make order object
+    const order = await queryBuilder
+      .orderBy('order.createdAt', 'DESC')
+      .take(query.limit)
+      .getMany();
+    //make nextCursor
+    const nextCursor =
+      order.length === query.limit
+        ? order[order.length - 1].createdAt.toISOString()
+        : null;
+    //return built object
+    return {
+      data: order,
+      pagination: {
+        limit: query.limit,
+        nextCursor,
+      },
+    };
   }
   //createOrderEvent: save order in orderEvent once created
   private async createOrderEvent(
