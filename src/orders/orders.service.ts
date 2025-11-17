@@ -1,4 +1,9 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CustomerService } from 'src/customer/customer.service';
@@ -6,8 +11,13 @@ import { OrderEvent } from 'src/database/entities/order-event.entity';
 import { Order } from 'src/database/entities/order.entity';
 import { Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { OrderStatus } from './dto/update-order-status.dto';
+import {
+  OrderStatus,
+  UpdateOrderStatusDto,
+} from './dto/update-order-status.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
+import { NotFoundError } from 'rxjs';
+import { TenantService } from 'src/tenant/tenant.service';
 
 @Injectable()
 export class OrdersService {
@@ -134,6 +144,27 @@ export class OrdersService {
         nextCursor,
       },
     };
+  }
+  //find a single order
+  async findOne(tenantId: string, id: string) {
+    const order = await this.orderRepository.findOne({
+      where: { id, tenantId },
+      relations: ['customer', 'driver', 'events'],
+    });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    return order;
+  }
+
+  //upadte orderstatus
+  async updateStatus(
+    tenantId: string,
+    id: string,
+    userId: string,
+    updateStatusDto: UpdateOrderStatusDto,
+  ) {
+    const order = this.findOne(tenantId, id);
   }
   //createOrderEvent: save order in orderEvent once created
   private async createOrderEvent(
