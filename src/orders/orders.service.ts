@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -180,6 +181,24 @@ export class OrdersService {
       createdBy: createdBy === null ? undefined : createdBy,
     });
     return this.orderEventRepository.save(event);
+  }
+
+  //validateStatusTransition
+  validateStatusTransition(currentStatus: string, newStatus: string) {
+    const validTransitions: Record<string, string[]> = {
+      [OrderStatus.PENDING]: [OrderStatus.ASSIGNED, OrderStatus.CANCELLED],
+      [OrderStatus.ASSIGNED]: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
+      [OrderStatus.PICKED_UP]: [OrderStatus.IN_TRANSIT, OrderStatus.FAILED],
+      [OrderStatus.IN_TRANSIT]: [OrderStatus.DELIVERED, OrderStatus.FAILED],
+      [OrderStatus.DELIVERED]: [],
+      [OrderStatus.FAILED]: [],
+      [OrderStatus.CANCELLED]: [],
+    };
+    if (!validTransitions[currentStatus]?.includes(newStatus)) {
+      throw new BadRequestException(
+        `Invalid status transition from ${currentStatus} to ${newStatus}`,
+      );
+    }
   }
 
   //This is the Haversine formula, which calculates the great-circle distance between two points on a sphere. "Great-circle" means the shortest path along the surface of the sphere (like an airplane route
