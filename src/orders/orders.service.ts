@@ -165,7 +165,36 @@ export class OrdersService {
     userId: string,
     updateStatusDto: UpdateOrderStatusDto,
   ) {
-    const order = this.findOne(tenantId, id);
+    const order = await this.findOne(tenantId, id);
+
+    this.validateStatusTransition(order.status, updateStatusDto.status);
+
+    order.status = updateStatusDto.status;
+
+    if (updateStatusDto.status === OrderStatus.DELIVERED) {
+      order.completedAt = new Date();
+    }
+    const updatedOrder = await this.orderRepository.save(order);
+
+    await this.createOrderEvent(
+      order.id,
+      `order.status.${updateStatusDto.status}`,
+      {
+        oldStatus: order.status,
+        newStatus: updateStatusDto.status,
+        notes: updateStatusDto.notes,
+      },
+      userId,
+    );
+
+    this.eventEmitter.emit('order.status.changed', {
+      orderId: order.id,
+      tenantId,
+      status: updateStatusDto.status,
+    });
+
+    this.logger.log(`Order ${id} status updated to ${updateStatusDto.status}`);
+    return updatedOrder;
   }
   //createOrderEvent: save order in orderEvent once created
   private async createOrderEvent(
