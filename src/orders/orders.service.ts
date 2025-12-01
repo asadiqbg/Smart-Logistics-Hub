@@ -17,8 +17,8 @@ import {
   UpdateOrderStatusDto,
 } from './dto/update-order-status.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
-import { NotFoundError } from 'rxjs';
-import { TenantService } from 'src/tenant/tenant.service';
+import { calculateEstimatedDuration } from 'src/common/utils/calclate-duration';
+import { OrderStateMachine } from './state/order-state-machine';
 
 @Injectable()
 export class OrdersService {
@@ -59,8 +59,8 @@ export class OrdersService {
         createOrderDto.delivery.coordinates[0],
       ],
     };
-    //calculate esimated duration
-    const estimatedDuration = this.calculateEstimatedDuration(
+    //calculate esimated duration (Harversine Formula)
+    const estimatedDuration = calculateEstimatedDuration(
       createOrderDto.pickup.coordinates,
       createOrderDto.delivery.coordinates,
     );
@@ -167,7 +167,7 @@ export class OrdersService {
   ) {
     const order = await this.findOne(tenantId, id);
 
-    this.validateStatusTransition(order.status, updateStatusDto.status);
+    OrderStateMachine.validate(order.status, updateStatusDto.status);
 
     order.status = updateStatusDto.status;
 
@@ -210,49 +210,5 @@ export class OrdersService {
       createdBy: createdBy === null ? undefined : createdBy,
     });
     return this.orderEventRepository.save(event);
-  }
-
-  //validateStatusTransition
-  validateStatusTransition(currentStatus: string, newStatus: string) {
-    const validTransitions: Record<string, string[]> = {
-      [OrderStatus.PENDING]: [OrderStatus.ASSIGNED, OrderStatus.CANCELLED],
-      [OrderStatus.ASSIGNED]: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
-      [OrderStatus.PICKED_UP]: [OrderStatus.IN_TRANSIT, OrderStatus.FAILED],
-      [OrderStatus.IN_TRANSIT]: [OrderStatus.DELIVERED, OrderStatus.FAILED],
-      [OrderStatus.DELIVERED]: [],
-      [OrderStatus.FAILED]: [],
-      [OrderStatus.CANCELLED]: [],
-    };
-    if (!validTransitions[currentStatus]?.includes(newStatus)) {
-      throw new BadRequestException(
-        `Invalid status transition from ${currentStatus} to ${newStatus}`,
-      );
-    }
-  }
-
-  //This is the Haversine formula, which calculates the great-circle distance between two points on a sphere. "Great-circle" means the shortest path along the surface of the sphere (like an airplane route
-  private calculateEstimatedDuration(
-    pickup: [number, number],
-    delivery: [number, number],
-  ): number {
-    const toRadians = (deg: number) => (deg * Math.PI) / 180;
-    const R = 6371; // Earth's radius in kilometers
-
-    const lat1 = toRadians(pickup[0]);
-    const lat2 = toRadians(delivery[0]);
-    const deltaLat = toRadians(delivery[0] - pickup[0]);
-    const deltaLon = toRadians(delivery[1] - pickup[1]);
-
-    const a =
-      Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-      Math.cos(lat1) *
-        Math.cos(lat2) *
-        Math.sin(deltaLon / 2) *
-        Math.sin(deltaLon / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c;
-
-    return Math.ceil((distance / 30) * 60); // Assuming 30 km/h average speed
   }
 }
