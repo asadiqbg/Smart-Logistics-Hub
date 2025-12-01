@@ -1,11 +1,13 @@
 import {
   CanActivate,
   ExecutionContext,
+  Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { TenantService } from 'src/tenant/tenant.service';
 
+@Injectable()
 export class TenantGuard implements CanActivate {
   constructor(private readonly tenantService: TenantService) {}
 

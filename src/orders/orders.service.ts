@@ -31,7 +31,7 @@ export class OrdersService {
     private eventEmitter: EventEmitter2,
   ) {}
   async create(
-    tenantId: string,
+    tenantId: string, //extracted from jwt payload and set in currentTenant and CurrentUser() custom decorator
     userId: string,
     createOrderDto: CreateOrderDto,
   ) {
