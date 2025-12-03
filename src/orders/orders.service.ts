@@ -1,0 +1,214 @@
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CustomerService } from 'src/customer/customer.service';
+import { OrderEvent } from 'src/database/entities/order-event.entity';
+import { Order } from 'src/database/entities/order.entity';
+import { Repository } from 'typeorm';
+import { CreateOrderDto } from './dto/create-order.dto';
+import {
+  OrderStatus,
+  UpdateOrderStatusDto,
+} from './dto/update-order-status.dto';
+import { OrderQueryDto } from './dto/order-query.dto';
+import { calculateEstimatedDuration } from 'src/common/utils/calclate-duration';
+import { OrderStateMachine } from './state/order-state-machine';
+
+@Injectable()
+export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+  constructor(
+    @InjectRepository(Order) private orderRepository: Repository<Order>,
+    @InjectRepository(OrderEvent)
+    private orderEventRepository: Repository<OrderEvent>,
+    private readonly customerService: CustomerService,
+    private eventEmitter: EventEmitter2,
+  ) {}
+  async create(
+    tenantId: string, //extracted from jwt payload and set in currentTenant and CurrentUser() custom decorator
+    userId: string,
+    createOrderDto: CreateOrderDto,
+  ) {
+    //check for customer validity
+    const customer = this.customerService.findCustomerById(
+      tenantId,
+      createOrderDto.customerId,
+    );
+
+    if (!customer) {
+      throw new UnauthorizedException('Customer not found');
+    }
+    //Build geoJson point objects for pickup and delivery points
+    const pickupLocation = {
+      type: 'Point',
+      coordinates: [
+        createOrderDto.pickup.coordinates[1],
+        createOrderDto.pickup.coordinates[0],
+      ],
+    };
+    const deliveryLocation = {
+      type: 'Point',
+      coordinates: [
+        createOrderDto.delivery.coordinates[1],
+        createOrderDto.delivery.coordinates[0],
+      ],
+    };
+    //calculate esimated duration (Harversine Formula)
+    const estimatedDuration = calculateEstimatedDuration(
+      createOrderDto.pickup.coordinates,
+      createOrderDto.delivery.coordinates,
+    );
+    //create order
+    const order = this.orderRepository.create({
+      tenantId,
+      customerId: createOrderDto.customerId,
+      externalOrderId: createOrderDto.externalOrderId,
+      pickupLocation: pickupLocation as any,
+      deliveryLocation: deliveryLocation as any,
+      pickupWindowStart: new Date(createOrderDto.pickup.windowStart),
+      pickupWindowEnd: new Date(createOrderDto.pickup.windowEnd),
+      deliveryWindowStart: new Date(createOrderDto.delivery.windowStart),
+      deliveryWindowEnd: new Date(createOrderDto.delivery.windowEnd),
+      weightKg: createOrderDto.package.weightKg,
+      dimensionsJson: createOrderDto.package.dimensions,
+      specialInstructions: createOrderDto.package.specialInstructions,
+      estimatedDurationMinutes: estimatedDuration,
+      status: OrderStatus.PENDING,
+    });
+    //save order
+    const savedOrder = await this.orderRepository.save(order);
+    //create orderevent and store in db
+    await this.createOrderEvent(
+      savedOrder.id,
+      'order.created',
+      { order: savedOrder },
+      userId,
+    );
+
+    //generate event
+    this.eventEmitter.emit('order.created', {
+      orderId: savedOrder.id,
+      tenantId,
+      customerId: savedOrder.customerId,
+    });
+    //return savedorder
+    this.logger.log(`Order created:${savedOrder.id}`);
+    return savedOrder;
+  }
+  //findAll orders
+  async findAll(tenantId: string, query: OrderQueryDto) {
+    //build query builder
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.customer', 'customer')
+      .leftJoinAndSelect('order.driver', 'driver')
+      .where('order.tenantId = :tenantId', { tenantId });
+    //check for input queries, if exists, add them in builder
+    if (query.status) {
+      queryBuilder.andWhere('order.status = :status', { status: query.status });
+    }
+
+    if (query.driverId) {
+      queryBuilder.andWhere('order.driverId = :driverId', {
+        driverId: query.driverId,
+      });
+    }
+    //since cursor is extracted as a string from query params or dto
+    // we have to convert it to js Date object
+    // which is then converted to SQL date format at compile time when .getMany() is executed
+    if (query.cursor) {
+      queryBuilder.andWhere('order.createdAt > :cursor', {
+        cursor: new Date(query.cursor),
+      });
+    }
+    //make order object
+    const order = await queryBuilder
+      .orderBy('order.createdAt', 'DESC')
+      .take(query.limit)
+      .getMany();
+    //make nextCursor
+    const nextCursor =
+      order.length === query.limit
+        ? order[order.length - 1].createdAt.toISOString()
+        : null;
+    //return built object
+    return {
+      data: order,
+      pagination: {
+        limit: query.limit,
+        nextCursor,
+      },
+    };
+  }
+  //find a single order
+  async findOne(tenantId: string, id: string) {
+    const order = await this.orderRepository.findOne({
+      where: { id, tenantId },
+      relations: ['customer', 'driver', 'events'],
+    });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    return order;
+  }
+
+  //upadte orderstatus
+  async updateStatus(
+    tenantId: string,
+    id: string,
+    userId: string,
+    updateStatusDto: UpdateOrderStatusDto,
+  ) {
+    const order = await this.findOne(tenantId, id);
+
+    OrderStateMachine.validate(order.status, updateStatusDto.status);
+
+    order.status = updateStatusDto.status;
+
+    if (updateStatusDto.status === OrderStatus.DELIVERED) {
+      order.completedAt = new Date();
+    }
+    const updatedOrder = await this.orderRepository.save(order);
+
+    await this.createOrderEvent(
+      order.id,
+      `order.status.${updateStatusDto.status}`,
+      {
+        oldStatus: order.status,
+        newStatus: updateStatusDto.status,
+        notes: updateStatusDto.notes,
+      },
+      userId,
+    );
+
+    this.eventEmitter.emit('order.status.changed', {
+      orderId: order.id,
+      tenantId,
+      status: updateStatusDto.status,
+    });
+
+    this.logger.log(`Order ${id} status updated to ${updateStatusDto.status}`);
+    return updatedOrder;
+  }
+  //createOrderEvent: save order in orderEvent once created
+  private async createOrderEvent(
+    orderId: string,
+    eventType: string,
+    eventData: any,
+    createdBy: string | null,
+  ) {
+    const event = this.orderEventRepository.create({
+      orderId,
+      eventType,
+      eventData,
+      createdBy: createdBy === null ? undefined : createdBy,
+    });
+    return this.orderEventRepository.save(event);
+  }
+}
