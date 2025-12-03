@@ -33,4 +33,30 @@ export class DriverService {
     }
     return queryBuilder.getMany();
   }
+
+  async findOne(tenantId: string, id: string): Promise<Driver> {
+    const driver = await this.driverRepository.findOne({
+      where: { id, tenantId },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver not found');
+    }
+
+    return driver;
+  }
+
+  async updateLocation(
+    tenantId: string,
+    id: string,
+    updateLocationDto: UpdateDriverLocationDto,
+  ): Promise<Driver> {
+    const driver = await this.findOne(tenantId, id);
+    const location: Point = {
+      type: 'Point',
+      coordinates: [updateLocationDto.longitude, updateLocationDto.latitude],
+    };
+    driver.currentLocation = location;
+    return await this.driverRepository.save(driver);
+  }
 }
