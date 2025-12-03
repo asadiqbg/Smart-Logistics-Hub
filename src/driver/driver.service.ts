@@ -59,4 +59,10 @@ export class DriverService {
     driver.currentLocation = location;
     return await this.driverRepository.save(driver);
   }
+
+  async updateStatus(tenantId: string, id: string, status: string) {
+    const driver = await this.findOne(tenantId, id);
+    driver.status = status;
+    return await this.driverRepository.save(driver);
+  }
 }
