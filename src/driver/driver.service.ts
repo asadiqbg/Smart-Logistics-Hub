@@ -65,4 +65,44 @@ export class DriverService {
     driver.status = status;
     return await this.driverRepository.save(driver);
   }
+
+  async findNearestAvailable(
+    tenantId: string,
+    longitude: number,
+    latitude: number,
+    maxDistanceKm: number,
+  ) {
+    const drivers = await this.driverRepository
+      .createQueryBuilder('driver')
+      .where('driver.tenantId = :tenantId', { tenantId })
+      .andWhere('driver.status = :status', { status: 'availabe' })
+      .andWhere('driver.currentLocation IS NOT NULL')
+      .andWhere(
+        `ST_Distance(driver.currentLocation,
+        ST_SetSRID(ST_MakePoint(:longitude,:latitude),4326)::geography
+      ) < :maxDistance`,
+        { longitude, latitude, maxDistance: maxDistanceKm * 1000 },
+      )
+      .orderBy(
+        `ST_Distance(driver.currentLocation,
+        ST_SetSRID(ST_MakePoint(:longitude,:latitude),4326)::geography`,
+      )
+      .setParameters({ latitude, longitude })
+      .getMany();
+
+    return drivers;
+    /**
+     SELECT *
+      FROM driver
+      WHERE tenantId = :tenantId
+        AND status = 'available'
+        AND currentLocation IS NOT NULL
+        AND ST_Distance(
+              driver.currentLocation,
+              ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+            ) < :maxDistance
+      ORDER BY ST_Distance(...)
+
+     */
+  }
 }
