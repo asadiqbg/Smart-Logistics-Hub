@@ -24,7 +24,7 @@ export class DriverService {
   }
 
   async findAll(tenantId: string, status?: string): Promise<Driver[]> {
-    const queryBuilder = await this.driverRepository
+    const queryBuilder = this.driverRepository
       .createQueryBuilder('driver')
       .where('driver.tenantId = :tenantId', { tenantId });
 
