@@ -16,6 +16,7 @@ async function bootstrap() {
     .setDescription('Multi-tenant logistics optimization platform')
     .setVersion('1.0')
     .addBearerAuth()
+    .addServer('/api/v1')
     .addTag('auth', 'Authentication endpoints')
     .addTag('orders', 'Order management')
     .addTag('drivers', 'Driver management')

@@ -16,12 +16,16 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { TenantGuard } from 'src/auth/guards/tenant.guard';
 import { Driver } from 'src/database/entities/driver.entity';
 import { UpdateDriverLocationDto } from './dto/update-driver-location.dto';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('driver')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard)
 @Controller('driver')
 export class DriverController {
   constructor(private readonly driverService: DriverService) {}
 
+  @ApiOperation({ summary: 'Create a new driver' })
   @Post()
   create(
     @CurrentTenant() tenantId: string,
@@ -30,6 +34,7 @@ export class DriverController {
     return this.driverService.createDriver(createDriverDto, tenantId);
   }
 
+  @ApiOperation({ summary: 'Get all drivers' })
   @Get()
   findAll(
     @CurrentTenant() tenantId: string,
@@ -38,6 +43,7 @@ export class DriverController {
     return this.driverService.findAll(tenantId, status);
   }
 
+  @ApiOperation({ summary: 'Get a single driver by Id' })
   @Get(':id')
   findOne(
     @CurrentTenant() tenantId: string,
@@ -46,6 +52,7 @@ export class DriverController {
     return this.driverService.findOne(tenantId, id);
   }
 
+  @ApiOperation({ summary: 'Update driver location' })
   @Patch(':id/location')
   updateLocation(
     @CurrentTenant() tenantId: string,
@@ -55,6 +62,7 @@ export class DriverController {
     return this.driverService.updateLocation(tenantId, id, updateLocationDto);
   }
 
+  @ApiOperation({ summary: 'Update driver status' })
   @Patch(':id/status')
   updateStatus(
     @CurrentTenant() tenantId: string,
