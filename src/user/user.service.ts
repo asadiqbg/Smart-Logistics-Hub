@@ -10,7 +10,6 @@ import { User } from 'src/database/entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Inject } from '@nestjs/common';
-import passport from 'passport';
 
 @Injectable()
 export class UserService {
@@ -21,7 +20,6 @@ export class UserService {
   ) {}
 
   public async findUserById(id: string): Promise<User | null> {
-    console.log('inside user service');
     return await this.userRepository.findOne({
       where: { id },
     });
