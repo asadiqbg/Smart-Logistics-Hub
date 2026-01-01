@@ -9,5 +9,6 @@ import { TenantModule } from 'src/tenant/tenant.module';
   imports: [TypeOrmModule.forFeature([Driver]), TenantModule],
   providers: [DriverService],
   controllers: [DriverController],
+  exports: [DriverService],
 })
-export class DriverModule {}
+export class DriverModule { }

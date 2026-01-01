@@ -17,5 +17,6 @@ import { TenantModule } from 'src/tenant/tenant.module';
   ],
   providers: [OrdersService],
   controllers: [OrdersController],
+  exports: [OrdersService]
 })
-export class OrdersModule {}
+export class OrdersModule { }

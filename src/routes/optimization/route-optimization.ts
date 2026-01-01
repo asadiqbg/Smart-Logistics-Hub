@@ -1,6 +1,10 @@
+import { Logger } from "@nestjs/common";
+import { unsubscribe } from "diagnostics_channel";
 import { calculateDistance } from "src/common/utils/calculate-distance";
 import { Driver } from "src/database/entities/driver.entity";
 import { Order } from "src/database/entities/order.entity";
+import { DriverService } from "src/driver/driver.service";
+import { OrdersService } from "src/orders/orders.service";
 
 interface OptimizationResult {
   driverId: string,
@@ -11,6 +15,11 @@ interface OptimizationResult {
 }
 
 export class OptimizationService {
+  private readonly logger = new Logger(OptimizationService.name)
+
+  constructor(private orderService: OrdersService, private driverService: DriverService) {
+
+  }
   // this is our nearest neighbour algorithm
   // it takes a driver and remaining unassigned orders and assign those orders
   // to the driver in a greedy approach
