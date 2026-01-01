@@ -20,6 +20,47 @@ export class OptimizationService {
   constructor(private orderService: OrdersService, private driverService: DriverService) {
 
   }
+
+  //nearest neighbour algorithm 
+  //this is greedy, it makes the locally optimal choice
+  async optimizeRoutesNearestNeighbor(tenantId: string, orderIds: string[]): Promise<OptimizationResult[]> {
+
+    //first find the orders that are pending and drivers that are available
+    const orders = await this.orderService.findPendingById(tenantId, orderIds)
+    const drivers = await this.driverService.findAvailableDrivers(tenantId)
+
+    //if no drivers found return []
+    if (!drivers) {
+      this.logger.warn('No available drivers')
+      return []
+    }
+
+    //initialize empty results array
+    const results: OptimizationResult[] = []
+    //make a copy of orders
+    const unassignedOrders = [...orders]
+
+    //loop through each driver and assign them the orders that are closest to them i.e 
+    //buildRouteForDriver(driver,unassignedOrders) , assigns the order and return the sequence of assigned orders,
+    //totalDistance and totalDuration.
+    for (const driver of drivers) {
+      if (unassignedOrders.length === 0) break
+
+      const route = this.buildRouteForDriver(driver, unassignedOrders)
+      if (route.orders.length > 0) {
+        results.push(route)
+
+        //once we have found the route for a driver
+        //splice the indexes of the assigned orders from the original unassignedorders array
+        route.orders.forEach(order => {
+          const index = unassignedOrders.findIndex(o => o.id === order.id)
+          if (index > -1) unassignedOrders.splice(index, 1)
+        });
+
+      }
+    }
+    return results
+  }
   // this is our nearest neighbour algorithm
   // it takes a driver and remaining unassigned orders and assign those orders
   // to the driver in a greedy approach
