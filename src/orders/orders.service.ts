@@ -29,7 +29,7 @@ export class OrdersService {
     private orderEventRepository: Repository<OrderEvent>,
     private readonly customerService: CustomerService,
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
   async create(
     tenantId: string, //extracted from jwt payload and set in currentTenant and CurrentUser() custom decorator
     userId: string,
@@ -158,6 +158,16 @@ export class OrdersService {
     return order;
   }
 
+  //find pending orders by id (for route optimization)
+  async findPendingById(tenantId: string, orderIds: string[]): Promise<Order[]> {
+    return this.orderRepository.createQueryBuilder('order')
+      .where('order.id IN (:...ids)', { ids: orderIds })
+      .where('order.tenantId= :tenantId', { tenantId })
+      .where('order.status = :status', { status: 'pending' })
+      .getMany()
+
+  }
+
   //upadte orderstatus
   async updateStatus(
     tenantId: string,
@@ -211,4 +221,6 @@ export class OrdersService {
     });
     return this.orderEventRepository.save(event);
   }
+
+
 }
