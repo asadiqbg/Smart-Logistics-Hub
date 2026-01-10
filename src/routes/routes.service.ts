@@ -69,6 +69,21 @@ export class RoutesService {
     return routes
   }
 
+  async findAll(tenantId: string, status?: string) {
+    const queryBuilder = this.routeRepository.createQueryBuilder('route')
+      .leftJoinAndSelect('route.driver', 'driver')
+      .leftJoinAndSelect('route.order', 'order')
+      .leftJoinAndSelect('route.stops', 'stops')
+      .where('route.tenantId=:tenantId', { tenantId })
+
+    if (status) {
+      queryBuilder.andWhere('route.status=:status', { status })
+    }
+
+    return queryBuilder.orderBy('route.createdAt', 'DESC').getMany()
+  }
+
+
   private calculateOptimizationScore(result: any): number {
     const avgDistancePerOrder = result.totalDistance / result.orders.length;
     const score = Math.max(0, 100 - avgDistancePerOrder * 2);
