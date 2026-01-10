@@ -41,6 +41,7 @@ export class RoutesService {
           status: 'planned',
           estimatedDurationMinutes: result.totalDuration,
           estimatedDistanceKm: result.totalDistance,
+          optimizationScore: this.calculateOptimizationScore(result)
         })
 
         const savedRoute = await manager.save(Route, route)
@@ -50,6 +51,7 @@ export class RoutesService {
             routeId: savedRoute.id,
             orderId: order.id,
             stopSequence: index + 1,
+            estimatedArrivalTime: this.calculateETA(index, result.orders),
             status: 'pending',
           })
         })
@@ -65,5 +67,17 @@ export class RoutesService {
     })
     this.logger.log(`Created ${routes.length} optimized routes`)
     return routes
+  }
+
+  private calculateOptimizationScore(result: any): number {
+    const avgDistancePerOrder = result.totalDistance / result.orders.length;
+    const score = Math.max(0, 100 - avgDistancePerOrder * 2);
+    return parseFloat(score.toFixed(2));
+  }
+
+  private calculateETA(stopIndex: number, orders: any[]): Date {
+    const now = new Date();
+    const minutesFromNow = stopIndex * 30;
+    return new Date(now.getTime() + minutesFromNow * 60000);
   }
 }
