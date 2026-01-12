@@ -113,6 +113,15 @@ export class RoutesService {
     }
 
     return queryBuilder.orderBy('route.createdAt', 'DESC').getMany();
+    //await in controller
+    //.getMany() return a promise
+  }
+
+  async findOne(tenantId: string, id: string) {
+    return this.routeRepository.findOne({
+      where: { tenantId, id }
+    })
+    //await promise in controller
   }
 
   private calculateOptimizationScore(result: any): number {
