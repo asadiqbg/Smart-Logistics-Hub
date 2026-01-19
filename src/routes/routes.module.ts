@@ -7,9 +7,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Route } from 'src/database/entities/route.entity';
 import { RouteStop } from 'src/database/entities/route-stop.entity';
 import { OptimizationService } from './optimization/route-optimization';
+import { TenantModule } from 'src/tenant/tenant.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Route, RouteStop]), OrdersModule, DriverModule],
+  imports: [TypeOrmModule.forFeature([Route, RouteStop]), TenantModule, OrdersModule, DriverModule],
   providers: [RoutesService, OptimizationService],
   controllers: [RoutesController],
 

@@ -42,6 +42,8 @@ export class RoutesService {
       throw new NotFoundException('No available orders or drivers');
     }
 
+    this.logger.log(`tenantId:${tenantId}`)
+
     const routes = await this.dataSource.transaction(
       async (manager: EntityManager): Promise<Route[]> => {
         const createdRoutes: Route[] = [];

@@ -1,5 +1,4 @@
-import { Logger } from '@nestjs/common';
-import { unsubscribe } from 'diagnostics_channel';
+import { Injectable, Logger } from '@nestjs/common';
 import { calculateDistance } from 'src/common/utils/calculate-distance';
 import { Driver } from 'src/database/entities/driver.entity';
 import { Order } from 'src/database/entities/order.entity';
@@ -18,20 +17,24 @@ export interface OptimizationResult {
   sequence: number[];
 }
 
+@Injectable()
 export class OptimizationService {
   private readonly logger = new Logger(OptimizationService.name);
 
   constructor(
     private orderService: OrdersService,
     private driverService: DriverService,
-  ) {}
-
+  ) { }
   //nearest neighbour algorithm
   //this is greedy, it makes the locally optimal choice
   async optimizeRoutesNearestNeighbor(
     tenantId: string,
     orderIds: string[],
   ): Promise<OptimizationResult[]> {
+
+    if (!this.orderService) {
+      this.logger.error('OrdersService is not injected!');
+    }
     //first find the orders that are pending and drivers that are available
     const orders = await this.orderService.findPendingById(tenantId, orderIds);
     const drivers = await this.driverService.findAvailableDrivers(tenantId);
