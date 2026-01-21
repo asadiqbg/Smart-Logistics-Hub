@@ -100,6 +100,8 @@ export class OptimizationService {
     //make a copy of the unassigned order
     const unvisited = [...availabeOrders];
 
+    //TODO: fix the distance algorithm, the distance is showing very large in api response
+
     //loop until all orders are assigned
     //if no valid orders to assign break and return
     while (unvisited.length > 0) {
@@ -120,6 +122,7 @@ export class OptimizationService {
           nearestIndex = i;
         }
       }
+
       //if no order to assign break the outer loop
       if (!nearestOrder) break;
       const travelTimeMinutes = this.distanceToTimeMinutes(nearestDistance);
