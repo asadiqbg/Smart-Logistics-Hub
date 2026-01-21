@@ -10,7 +10,7 @@ import { Point } from 'geojson';
 export class DriverService {
   constructor(
     @InjectRepository(Driver) private driverRepository: Repository<Driver>,
-  ) {}
+  ) { }
 
   async createDriver(
     createDriverDto: CreateDriverDto,
@@ -45,6 +45,18 @@ export class DriverService {
 
     return driver;
   }
+
+  //for route optimization, we need availabe driver
+  async findAvailableDrivers(tenantId: string): Promise<Driver[]> {
+    return this.driverRepository.find({
+      where: {
+        tenantId,
+        status: 'available'
+      }
+    })
+  }
+
+
 
   async updateLocation(
     tenantId: string,

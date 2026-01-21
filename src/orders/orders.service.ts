@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CustomerService } from 'src/customer/customer.service';
 import { OrderEvent } from 'src/database/entities/order-event.entity';
 import { Order } from 'src/database/entities/order.entity';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import {
   OrderStatus,
@@ -29,7 +29,7 @@ export class OrdersService {
     private orderEventRepository: Repository<OrderEvent>,
     private readonly customerService: CustomerService,
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
   async create(
     tenantId: string, //extracted from jwt payload and set in currentTenant and CurrentUser() custom decorator
     userId: string,
@@ -158,6 +158,16 @@ export class OrdersService {
     return order;
   }
 
+  //find pending orders by id (for route optimization)
+  async findPendingById(tenantId: string, orderIds: string[]): Promise<Order[]> {
+    return this.orderRepository.createQueryBuilder('order')
+      .where('order.id IN (:...ids)', { ids: orderIds })
+      .where('order.tenantId= :tenantId', { tenantId })
+      .where('order.status = :status', { status: 'pending' })
+      .getMany()
+
+  }
+
   //upadte orderstatus
   async updateStatus(
     tenantId: string,
@@ -211,4 +221,57 @@ export class OrdersService {
     });
     return this.orderEventRepository.save(event);
   }
+
+  async assignDriver(tenantId: string, orderId: string, driverId: string, userId?: string, manager?: EntityManager) {
+    //if manager is present then use it, else use regular Repository
+    //used in create route transaction
+    const orderRepo = manager ? manager.getRepository(Order) : this.orderRepository
+
+    const eventRepo = manager ? manager.getRepository(OrderEvent) : this.orderEventRepository
+
+    const order = await orderRepo.findOne({
+      where: { tenantId, id: orderId }
+    })
+
+    if (!order) {
+      throw new NotFoundException('Order not found')
+    }
+    if (order.status !== 'pending') {
+      throw new BadRequestException(
+        'Order cannot be assigned in current status'
+      );
+    }
+
+
+    // Update order
+    order.driverId = driverId;
+    order.status = 'assigned';
+    const updatedOrder = await orderRepo.save(order);
+
+    // Create event
+    const event = eventRepo.create({
+      orderId: order.id,
+      eventType: 'order.assigned',
+      eventData: { driverId, assignedBy: userId },
+      createdBy: userId,
+    });
+    await eventRepo.save(event);
+
+    // ✅ Only emit events and queue if NOT in transaction
+    // (Transaction might still fail and rollback)
+    if (!manager) {
+      this.eventEmitter.emit('order.assigned', {
+        orderId: order.id,
+        tenantId,
+        driverId,
+      });
+
+
+    }
+
+    return updatedOrder;
+  }
+
+
 }
+

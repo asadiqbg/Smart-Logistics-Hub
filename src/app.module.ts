@@ -12,6 +12,7 @@ import { TenantModule } from './tenant/tenant.module';
 import { CustomerModule } from './customer/customer.module';
 import { OrdersModule } from './orders/orders.module';
 import { DriverModule } from './driver/driver.module';
+import { RoutesModule } from './routes/routes.module';
 import jwtConfig from './config/jwt.config';
 
 const ENV = process.env.NODE_ENV;
@@ -34,6 +35,7 @@ console.log(ENV);
     CustomerModule,
     OrdersModule,
     DriverModule,
+    RoutesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
